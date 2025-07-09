@@ -10,6 +10,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Windows.Controls;
+using System.Windows.Media;
 using UI_Chart.ViewModels;
 
 namespace UI_Chart.Views {
@@ -30,6 +31,8 @@ namespace UI_Chart.Views {
             cbBinMode.SelectedItem = MapBinMode.SBin;
             cbViewMode.SelectedItem = MapViewMode.Single;
             cbRtDataMode.SelectedItem = MapRtDataMode.OverWrite;
+
+            _ea.GetEvent<Event_MapBinColors>().Subscribe(ApplyCustomColors);
         }
 
         IRegionManager _regionManager;
@@ -191,6 +194,17 @@ namespace UI_Chart.Views {
 
         private void buttonApplyUserCord_Click(object sender, System.Windows.RoutedEventArgs e) {
             ExecuteCmdApply();
+        }
+
+        void ApplyCustomColors(Tuple<Dictionary<ushort, Color>, Dictionary<ushort, Color>> colors) {
+            waferMap.ClearCustomColors();
+            foreach (var kv in colors.Item1) {
+                waferMap.SetCustomBinColor(kv.Key, kv.Value, false);
+            }
+            foreach (var kv in colors.Item2) {
+                waferMap.SetCustomBinColor(kv.Key, kv.Value, true);
+            }
+            waferMap.ApplyCustomColors();
         }
 
 
