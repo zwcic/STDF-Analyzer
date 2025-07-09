@@ -26,12 +26,19 @@ namespace MapBase {
         private Dictionary<short?, Color[,]> _hBinMaps = new Dictionary<short?, Color[,]>();
         private Dictionary<short?, Color[,]> _freshSBinMaps = new Dictionary<short?, Color[,]>();
         private Dictionary<short?, Color[,]> _freshHBinMaps = new Dictionary<short?, Color[,]>();
+        private Dictionary<short?, ushort[,]> _sBinIdMaps = new Dictionary<short?, ushort[,]>();
+        private Dictionary<short?, ushort[,]> _hBinIdMaps = new Dictionary<short?, ushort[,]>();
+        private Dictionary<short?, ushort[,]> _freshSBinIdMaps = new Dictionary<short?, ushort[,]>();
+        private Dictionary<short?, ushort[,]> _freshHBinIdMaps = new Dictionary<short?, ushort[,]>();
         private Dictionary<short?, bool> _containRtFlg = new Dictionary<short?, bool>();
 
         private Dictionary<ushort, Color> _sBinColors = new Dictionary<ushort, Color>();
         private Dictionary<ushort, Color> _hBinColors = new Dictionary<ushort, Color>();
 
-        private Dictionary<Color, int> _colorDieCnt = new Dictionary<Color, int>();
+        public Dictionary<ushort, Color> CustomSBinColors { get; } = new Dictionary<ushort, Color>();
+        public Dictionary<ushort, Color> CustomHBinColors { get; } = new Dictionary<ushort, Color>();
+
+        private Dictionary<ushort, int> _binDieCnt = new Dictionary<ushort, int>();
         //private Dictionary<ushort, int> _sBinDieCnt = new Dictionary<ushort, int>();
         //private Dictionary<ushort, int> _hBinDieCnt = new Dictionary<ushort, int>();
         //private int _totalDieCnt = 0;
@@ -116,14 +123,28 @@ namespace MapBase {
             _selectedMap.EnableZoom = true;
             viewGrid.Children.Add(_selectedMap);
             
-            _colorDieCnt.Clear();
+            _binDieCnt.Clear();
 
-            foreach (var die in _selectedMap.MapDataSource) {
-                if (die != NullColor) {
-                    if (_colorDieCnt.ContainsKey(die)) {
-                        _colorDieCnt[die]++;
-                    } else {
-                        _colorDieCnt.Add(die, 1);
+            short? waferId = null;
+            if (short.TryParse(_selectedMap.WaferNo.Replace("NO:", ""), out short id)) {
+                waferId = id;
+            }
+
+            if (waferId.HasValue) {
+                var idMap = BinMode == MapBinMode.HBin ?
+                    (RtDataMode == MapRtDataMode.FirstOnly ? _freshHBinIdMaps[waferId] : _hBinIdMaps[waferId]) :
+                    (RtDataMode == MapRtDataMode.FirstOnly ? _freshSBinIdMaps[waferId] : _sBinIdMaps[waferId]);
+
+                for (int x = 0; x < idMap.GetLength(0); x++) {
+                    for (int y = 0; y < idMap.GetLength(1); y++) {
+                        var bin = idMap[x, y];
+                        if (bin != 0) {
+                            if (_binDieCnt.ContainsKey(bin)) {
+                                _binDieCnt[bin]++;
+                            } else {
+                                _binDieCnt.Add(bin, 1);
+                            }
+                        }
                     }
                 }
             }
@@ -153,7 +174,7 @@ namespace MapBase {
 
             var width = viewGrid.ActualWidth / splitColCnt;
 
-            _colorDieCnt.Clear();
+            _binDieCnt.Clear();
 
             for (int i = 0; i < _mapControlList.Count; i++) {
                 _mapControlList.ElementAt(i).Value.CordChanged -= MapBaseControl_CordChanged;
@@ -168,12 +189,24 @@ namespace MapBase {
                 Grid.SetColumn(_mapControlList.ElementAt(i).Value, i % splitColCnt);
 
                 //calc the bin yield based on the map
-                foreach(var die in _mapControlList.ElementAt(i).Value.MapDataSource) {
-                    if(die != NullColor) {
-                        if (_colorDieCnt.ContainsKey(die)) {
-                            _colorDieCnt[die]++;
-                        } else {
-                            _colorDieCnt.Add(die, 1);
+                short? waferId = null;
+                if (short.TryParse(_mapControlList.ElementAt(i).Key.ToString(), out short id)) {
+                    waferId = id;
+                }
+                if (waferId.HasValue) {
+                    var idMap = BinMode == MapBinMode.HBin ?
+                        (RtDataMode == MapRtDataMode.FirstOnly ? _freshHBinIdMaps[waferId] : _hBinIdMaps[waferId]) :
+                        (RtDataMode == MapRtDataMode.FirstOnly ? _freshSBinIdMaps[waferId] : _sBinIdMaps[waferId]);
+                    for (int x = 0; x < idMap.GetLength(0); x++) {
+                        for (int y = 0; y < idMap.GetLength(1); y++) {
+                            var bin = idMap[x, y];
+                            if (bin != 0) {
+                                if (_binDieCnt.ContainsKey(bin)) {
+                                    _binDieCnt[bin]++;
+                                } else {
+                                    _binDieCnt.Add(bin, 1);
+                                }
+                            }
                         }
                     }
                 }
@@ -224,15 +257,9 @@ namespace MapBase {
 
             int totalCnt = 0;
             Dictionary<ushort, int> binCnt = new Dictionary<ushort, int>();
-            foreach(var c in _colorDieCnt) {
+            foreach (var c in _binDieCnt) {
                 totalCnt += c.Value;
-                if (BinMode == MapBinMode.HBin) {
-                    var bin = _hBinColors.FirstOrDefault(a => a.Value == c.Key).Key;
-                    binCnt.Add(bin, c.Value);
-                } else {
-                    var bin = _sBinColors.FirstOrDefault(a => a.Value == c.Key).Key;
-                    binCnt.Add(bin, c.Value);
-                }
+                binCnt.Add(c.Key, c.Value);
             }
 
             textBlockDieCnt.Text = $"Total:{totalCnt}";
@@ -285,6 +312,10 @@ namespace MapBase {
             
             _freshSBinMaps.Clear();
             _freshHBinMaps.Clear();
+            _sBinIdMaps.Clear();
+            _hBinIdMaps.Clear();
+            _freshSBinIdMaps.Clear();
+            _freshHBinIdMaps.Clear();
             _containRtFlg.Clear();
 
             _xCnt = _waferData.XUbound - _waferData.XLbound + 1;
@@ -315,6 +346,13 @@ namespace MapBase {
                 sbFlg = true;
             }
 
+            foreach (var c in CustomHBinColors) {
+                _hBinColors[c.Key] = c.Value;
+            }
+            foreach (var c in CustomSBinColors) {
+                _sBinColors[c.Key] = c.Value;
+            }
+
             int fsbCnt = 0;
             int fhbCnt = 0;
             foreach (var die in _waferData.DieInfoList) {
@@ -338,6 +376,10 @@ namespace MapBase {
                     _hBinMaps.Add(die.WaferId, new Color[_xCnt, _yCnt]);
                     _freshSBinMaps.Add(die.WaferId, new Color[_xCnt, _yCnt]);
                     _freshHBinMaps.Add(die.WaferId, new Color[_xCnt, _yCnt]);
+                    _sBinIdMaps.Add(die.WaferId, new ushort[_xCnt, _yCnt]);
+                    _hBinIdMaps.Add(die.WaferId, new ushort[_xCnt, _yCnt]);
+                    _freshSBinIdMaps.Add(die.WaferId, new ushort[_xCnt, _yCnt]);
+                    _freshHBinIdMaps.Add(die.WaferId, new ushort[_xCnt, _yCnt]);
                     _containRtFlg.Add(die.WaferId, false);
                 }
 
@@ -352,10 +394,17 @@ namespace MapBase {
                     _hBinMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = _hBinColors[die.HBin];
                     _freshSBinMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = _sBinColors[die.SBin];
                     _freshHBinMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = _hBinColors[die.HBin];
+
+                    _sBinIdMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = die.SBin;
+                    _hBinIdMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = die.HBin;
+                    _freshSBinIdMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = die.SBin;
+                    _freshHBinIdMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = die.HBin;
                 } else {
                     _containRtFlg[die.WaferId] = true;
                     _sBinMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = _sBinColors[die.SBin];
                     _hBinMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = _hBinColors[die.HBin];
+                    _sBinIdMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = die.SBin;
+                    _hBinIdMaps[die.WaferId][die.X - _waferData.XLbound, die.Y - _waferData.YLbound] = die.HBin;
                 }
 
             }
@@ -414,6 +463,25 @@ namespace MapBase {
             if (_selectedMap is null) return null;
 
             return _selectedMap.GetBitmapSource();
+        }
+
+        public void SetCustomBinColor(ushort bin, Color color, bool isHBin) {
+            if (isHBin) {
+                CustomHBinColors[bin] = color;
+            } else {
+                CustomSBinColors[bin] = color;
+            }
+        }
+
+        public void ClearCustomColors() {
+            CustomSBinColors.Clear();
+            CustomHBinColors.Clear();
+        }
+
+        public void ApplyCustomColors() {
+            if (_waferData != null) {
+                UpdateData();
+            }
         }
 
     }
