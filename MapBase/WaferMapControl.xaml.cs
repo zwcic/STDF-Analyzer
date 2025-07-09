@@ -31,6 +31,9 @@ namespace MapBase {
         private Dictionary<ushort, Color> _sBinColors = new Dictionary<ushort, Color>();
         private Dictionary<ushort, Color> _hBinColors = new Dictionary<ushort, Color>();
 
+        public Dictionary<ushort, Color> CustomSBinColors { get; } = new Dictionary<ushort, Color>();
+        public Dictionary<ushort, Color> CustomHBinColors { get; } = new Dictionary<ushort, Color>();
+
         private Dictionary<Color, int> _colorDieCnt = new Dictionary<Color, int>();
         //private Dictionary<ushort, int> _sBinDieCnt = new Dictionary<ushort, int>();
         //private Dictionary<ushort, int> _hBinDieCnt = new Dictionary<ushort, int>();
@@ -315,6 +318,13 @@ namespace MapBase {
                 sbFlg = true;
             }
 
+            foreach (var c in CustomHBinColors) {
+                _hBinColors[c.Key] = c.Value;
+            }
+            foreach (var c in CustomSBinColors) {
+                _sBinColors[c.Key] = c.Value;
+            }
+
             int fsbCnt = 0;
             int fhbCnt = 0;
             foreach (var die in _waferData.DieInfoList) {
@@ -414,6 +424,25 @@ namespace MapBase {
             if (_selectedMap is null) return null;
 
             return _selectedMap.GetBitmapSource();
+        }
+
+        public void SetCustomBinColor(ushort bin, Color color, bool isHBin) {
+            if (isHBin) {
+                CustomHBinColors[bin] = color;
+            } else {
+                CustomSBinColors[bin] = color;
+            }
+        }
+
+        public void ClearCustomColors() {
+            CustomSBinColors.Clear();
+            CustomHBinColors.Clear();
+        }
+
+        public void ApplyCustomColors() {
+            if (_waferData != null) {
+                UpdateData();
+            }
         }
 
     }
