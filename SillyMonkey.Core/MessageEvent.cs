@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DataContainer;
+using System.Windows.Media;
 
 namespace SillyMonkey.Core
 {
@@ -72,6 +73,8 @@ namespace SillyMonkey.Core
 
     public class Event_CorrItemSelected : PubSubEvent<Tuple<string, IEnumerable<SubData>>> {}
     public class Event_SiteCorrItemSelected : PubSubEvent<Tuple<string, SubData>> { }
+
+    public class Event_MapBinColors : PubSubEvent<Tuple<Dictionary<ushort, Color>, Dictionary<ushort, Color>>> { }
 
     public delegate void SubWindowReturnHandler(object obj);
 }

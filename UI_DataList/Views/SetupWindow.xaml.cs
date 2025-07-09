@@ -6,15 +6,27 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows;
 using SillyMonkey.Core.Properties;
+using Prism.Events;
+using Prism.Ioc;
+using System.Windows.Media;
+using Microsoft.Win32;
+using System.IO;
 
 namespace UI_DataList.Views {
     /// <summary>
     /// SetupWindow.xaml 的交互逻辑
     /// </summary>
     public partial class SetupWindow : Window, INotifyPropertyChanged {
+        IEventAggregator _ea;
+        Dictionary<ushort, Color> _customSBinColors = new Dictionary<ushort, Color>();
+        Dictionary<ushort, Color> _customHBinColors = new Dictionary<ushort, Color>();
+        Color _selectedColor = Colors.Black;
         public SetupWindow() {
             DataContext = this;
             InitializeComponent();
+            _ea = ContainerLocator.Container.Resolve<IEventAggregator>();
+            if (cbBinType != null)
+                cbBinType.SelectedIndex = 0;
         }
 
         private string[] _uidTypeList = Enum.GetNames(typeof(UidType));
@@ -188,14 +200,62 @@ namespace UI_DataList.Views {
             set { SA.CorrHistogramEnableDefaultSavePath = value; }
         }
 
+        private void btnPickColor_Click(object sender, RoutedEventArgs e) {
+            var dlg = new System.Windows.Forms.ColorDialog();
+            if (dlg.ShowDialog() == System.Windows.Forms.DialogResult.OK) {
+                _selectedColor = Color.FromArgb(dlg.Color.A, dlg.Color.R, dlg.Color.G, dlg.Color.B);
+                rectColorPreview.Fill = new SolidColorBrush(_selectedColor);
+            }
+        }
+
+        private void btnAddColor_Click(object sender, RoutedEventArgs e) {
+            if (ushort.TryParse(tbBinNo.Text, out ushort bin)) {
+                if (cbBinType.SelectedIndex == 0) {
+                    _customSBinColors[bin] = _selectedColor;
+                } else {
+                    _customHBinColors[bin] = _selectedColor;
+                }
+            }
+        }
+
+        private void btnClearColors_Click(object sender, RoutedEventArgs e) {
+            _customSBinColors.Clear();
+            _customHBinColors.Clear();
+        }
+
+        private void btnImportColors_Click(object sender, RoutedEventArgs e) {
+            var dlg = new Microsoft.Win32.OpenFileDialog();
+            dlg.Filter = "Color Map|*.csv;*.txt|All Files|*.*";
+            if (dlg.ShowDialog() == true) {
+                foreach (var line in System.IO.File.ReadAllLines(dlg.FileName)) {
+                    var parts = line.Split(',');
+                    if (parts.Length >= 3) {
+                        var type = parts[0].Trim();
+                        if (ushort.TryParse(parts[1].Trim(), out ushort bin)) {
+                            try {
+                                var color = (Color)ColorConverter.ConvertFromString(parts[2].Trim());
+                                if (string.Equals(type, "S", StringComparison.OrdinalIgnoreCase)) {
+                                    _customSBinColors[bin] = color;
+                                } else if (string.Equals(type, "H", StringComparison.OrdinalIgnoreCase)) {
+                                    _customHBinColors[bin] = color;
+                                }
+                            } catch { }
+                        }
+                    }
+                }
+            }
+        }
+
         private DelegateCommand _apply;
 
         public DelegateCommand Apply =>
             _apply ?? (_apply = new DelegateCommand(ExecuteApply));
 
         void ExecuteApply() {
-
-
+            _ea.GetEvent<Event_MapBinColors>().Publish(
+                new Tuple<Dictionary<ushort, Color>, Dictionary<ushort, Color>>(
+                    new Dictionary<ushort, Color>(_customSBinColors),
+                    new Dictionary<ushort, Color>(_customHBinColors)));
 
             SA.ApplyAndSave();
             this.Close();
