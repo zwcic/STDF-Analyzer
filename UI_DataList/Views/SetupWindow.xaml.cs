@@ -9,6 +9,7 @@ using SillyMonkey.Core.Properties;
 using Prism.Events;
 using Prism.Ioc;
 using System.Windows.Media;
+using MapBase;
 
 namespace UI_DataList.Views {
     /// <summary>
@@ -219,6 +220,20 @@ namespace UI_DataList.Views {
         private void btnClearColors_Click(object sender, RoutedEventArgs e) {
             _customSBinColors.Clear();
             _customHBinColors.Clear();
+        }
+
+        private void btnApplyAllColors_Click(object sender, RoutedEventArgs e) {
+            var parts = tbAllColors.Text.Split(new char[] { ',', ';', ' ', '\n', '\r', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            var list = new List<Color>();
+            foreach (var p in parts) {
+                try {
+                    var c = (Color)ColorConverter.ConvertFromString(p);
+                    list.Add(c);
+                } catch { }
+            }
+            if (list.Count > 0) {
+                BinColor.SetFailBinColors(list.ToArray());
+            }
         }
 
         private DelegateCommand _apply;
