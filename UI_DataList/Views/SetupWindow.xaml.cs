@@ -9,6 +9,7 @@ using SillyMonkey.Core.Properties;
 using Prism.Events;
 using Prism.Ioc;
 using System.Windows.Media;
+using MapBase;
 
 namespace UI_DataList.Views {
     /// <summary>
