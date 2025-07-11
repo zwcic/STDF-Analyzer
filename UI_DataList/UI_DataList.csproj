@@ -186,6 +186,10 @@
       <Project>{0649ef81-84ca-4882-bb22-c0599be5d3d1}</Project>
       <Name>SillyMonkey.Core</Name>
     </ProjectReference>
+    <ProjectReference Include="..\MapBase\MapBase.csproj">
+      <Project>{D51805D7-6133-4DB3-9F5C-0FC506165D59}</Project>
+      <Name>MapBase</Name>
+    </ProjectReference>
     <ProjectReference Include="..\UI_Data\UI_Data.csproj">
       <Project>{8DCE4CE3-E4E2-4667-BD60-DCF9DD413426}</Project>
       <Name>UI_Data</Name>
