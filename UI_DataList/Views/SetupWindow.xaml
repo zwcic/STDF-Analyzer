@@ -183,11 +183,6 @@
                         <Button Content="Add/Update" Width="80" Click="btnAddColor_Click" />
                         <Button Content="Clear" Width="60" Margin="10,0,0,0" Click="btnClearColors_Click" />
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="0,3,0,0" >
-                        <TextBlock Text="All Colors:" VerticalAlignment="Center" Width="80" Margin="10,0,0,0" />
-                        <TextBox x:Name="tbAllColors" Width="200" />
-                        <Button Content="ApplyAll" Width="70" Margin="10,0,0,0" Click="btnApplyAllColors_Click" />
-                    </StackPanel>
                 </StackPanel>
             </TabItem>
         </TabControl>
